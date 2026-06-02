@@ -7,8 +7,9 @@ import { Toaster, toast } from 'react-hot-toast';
 import io from 'socket.io-client';
 import ProductVariantManager from './components/ProductVariantManager';
 
-const API_URL = 'http://localhost:5000/api';
-const socket = io('http://localhost:5000');
+const BACKEND_URL = 'https://glowhaven-billing-be.onrender.com';
+const API_URL = BACKEND_URL;
+const socket = io(BACKEND_URL);
 
 function App() {
   const [activeTab, setActiveTab] = useState('billing');
