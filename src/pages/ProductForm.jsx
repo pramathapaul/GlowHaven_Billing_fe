@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { PageHead, Alert, Spinner } from '../components/ui.jsx';
 
-const EMPTY = { name: '', sku: '', category: '', quantity: '0', unit: 'pcs', mrp: '', selling_price: '', cost_price: '' };
+const EMPTY = { name: '', sku: '', category: '', quantity: '0', unit: 'pcs', mrp: '', selling_price: '', cost_price: '', base_quantity: '0' };
 let rowSeq = 1;
 
 export default function ProductForm() {
@@ -33,6 +33,8 @@ export default function ProductForm() {
           mrp: String(p.mrp),
           selling_price: String(p.selling_price ?? p.mrp ?? ''),
           cost_price: String(p.cost_price),
+          // Big/original size stock (equals the plain quantity when no packs).
+          base_quantity: String(p.base_quantity ?? 0),
         });
         setColors(
           (p.colors || []).map((c) => ({ key: rowSeq++, color: c.color, quantity: String(c.quantity) }))
@@ -55,7 +57,10 @@ export default function ProductForm() {
   const tracksColors = colors.length > 0;
   const tracksPacks = packs.length > 0;
   const colorTotal = colors.reduce((sum, c) => sum + (Number(c.quantity) || 0), 0);
+  const baseQty = Number(form.base_quantity) || 0;
   const packTotal = packs.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0);
+  // Total stock = big/original size + every pack bucket.
+  const packGrandTotal = baseQty + packTotal;
   const tracksVariants = tracksColors || tracksPacks;
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -97,6 +102,13 @@ export default function ProductForm() {
     }
 
     if (tracksPacks) {
+      if (
+        form.base_quantity === '' ||
+        !Number.isInteger(Number(form.base_quantity)) ||
+        Number(form.base_quantity) < 0
+      ) {
+        errs.base_quantity = 'Big-size stock must be a whole number ≥ 0.';
+      }
       const seen = new Set();
       packs.forEach((row, i) => {
         const label = row.label.trim().toLowerCase();
@@ -143,7 +155,9 @@ export default function ProductForm() {
       mrp: Number(form.mrp),
       selling_price: Number(form.selling_price),
       cost_price: Number(form.cost_price),
-      quantity: tracksColors ? colorTotal : tracksPacks ? packTotal : Number(form.quantity),
+      quantity: tracksColors ? colorTotal : tracksPacks ? packGrandTotal : Number(form.quantity),
+      // Big/original size stock (server ignores it when there are no packs).
+      base_quantity: tracksPacks ? Number(form.base_quantity) : Number(form.quantity) || 0,
       colors: tracksColors ? colors.map((c) => ({ color: c.color.trim(), quantity: Number(c.quantity) })) : [],
       packs: tracksPacks
         ? packs.map((p) => ({
@@ -236,7 +250,7 @@ export default function ProductForm() {
               min="0"
               step="1"
               className={`input ${fieldErrors.quantity ? 'invalid' : ''}`}
-              value={tracksColors ? String(colorTotal) : tracksPacks ? String(packTotal) : form.quantity}
+              value={tracksColors ? String(colorTotal) : tracksPacks ? String(packGrandTotal) : form.quantity}
               onChange={set('quantity')}
               disabled={tracksVariants}
               readOnly={tracksVariants}
@@ -245,7 +259,7 @@ export default function ProductForm() {
               {tracksColors
                 ? 'Totals are the sum of the color breakdown below.'
                 : tracksPacks
-                  ? 'Totals are the sum of the pack breakdown below.'
+                  ? 'Totals are the big-size stock plus the pack breakdown below.'
                   : 'Add colors or packs below if this product comes in variants.'}
             </span>
             {fieldErrors.quantity ? <span className="field-error">{fieldErrors.quantity}</span> : null}
@@ -300,9 +314,66 @@ export default function ProductForm() {
           <div className="field">
             <label>Stock by pack</label>
             <div className="hint" style={{ marginBottom: 6 }}>
-              Optional. When packs are tracked (e.g. Small pack / Big pack), every order/bill line must pick one — each
-              pack has its own MRP, selling price, cost price and stock bucket. Cannot be combined with colors.
+              Optional. The product as you first added it stays sellable as the <strong>big size</strong> (no size
+              selected) — add a pack for every smaller size (e.g. Small pack). Each pack has its own MRP, selling
+              price, cost price and stock bucket. Cannot be combined with colors.
             </div>
+
+            <div className="inline-form" style={{ marginBottom: 8, alignItems: 'flex-start' }}>
+              <input
+                className="input"
+                value="Big size (original) — as added above"
+                readOnly
+                disabled
+                style={{ background: '#f8fafc', color: 'var(--muted)' }}
+              />
+              <input
+                className={`input ${fieldErrors.base_quantity ? 'invalid' : ''}`}
+                style={{ maxWidth: 110 }}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="MRP"
+                title="MRP (printed price)"
+                value={form.mrp}
+                readOnly
+              />
+              <input
+                className="input"
+                style={{ maxWidth: 110 }}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Selling"
+                title="Selling price (what customer pays)"
+                value={form.selling_price}
+                readOnly
+              />
+              <input
+                className="input"
+                style={{ maxWidth: 110 }}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Cost"
+                title="Cost price (what you pay)"
+                value={form.cost_price}
+                readOnly
+              />
+              <input
+                className={`input ${fieldErrors.base_quantity ? 'invalid' : ''}`}
+                style={{ maxWidth: 90 }}
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Qty"
+                title="Big-size stock"
+                value={form.base_quantity}
+                onChange={set('base_quantity')}
+              />
+            </div>
+            {fieldErrors.base_quantity ? <span className="field-error">{fieldErrors.base_quantity}</span> : null}
+
             {packs.map((row, i) => (
               <div key={row.key} className="inline-form" style={{ marginBottom: 8, alignItems: 'flex-start' }}>
                 <input
@@ -363,11 +434,15 @@ export default function ProductForm() {
               <button type="button" className="btn btn-sm" onClick={addPackRow}>
                 + Add pack
               </button>
-              {tracksPacks ? <span className="hint">Total: {packTotal}</span> : null}
+              {tracksPacks ? (
+                <span className="hint">
+                  Big size {baseQty} + packs {packTotal} = {packGrandTotal} total
+                </span>
+              ) : null}
             </div>
             {fieldErrors.variants ? <span className="field-error">{fieldErrors.variants}</span> : null}
             {Object.entries(fieldErrors)
-              .filter(([k]) => k.startsWith('pack-') || k.startsWith('pmrp-') || k.startsWith('pprice-') || k.startsWith('pcost-') || k.startsWith('pqty-'))
+              .filter(([k]) => k === 'base_quantity' || k.startsWith('pack-') || k.startsWith('pmrp-') || k.startsWith('pprice-') || k.startsWith('pcost-') || k.startsWith('pqty-'))
               .map(([k, v]) => (
                 <span key={k} className="field-error">
                   {v}
