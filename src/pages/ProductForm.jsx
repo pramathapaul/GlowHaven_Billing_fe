@@ -12,7 +12,7 @@ export default function ProductForm() {
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY);
   const [colors, setColors] = useState([]); // [{ key, color, quantity }]
-  const [packs, setPacks] = useState([]); // [{ key, label, price, quantity }]
+  const [packs, setPacks] = useState([]); // [{ key, label, mrp, price, cost_price, quantity }]
   const [loading, setLoading] = useState(isEdit);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -38,7 +38,14 @@ export default function ProductForm() {
           (p.colors || []).map((c) => ({ key: rowSeq++, color: c.color, quantity: String(c.quantity) }))
         );
         setPacks(
-          (p.packs || []).map((x) => ({ key: rowSeq++, label: x.label, price: String(x.price), quantity: String(x.quantity) }))
+          (p.packs || []).map((x) => ({
+            key: rowSeq++,
+            label: x.label,
+            mrp: String(x.mrp ?? x.price ?? ''),
+            price: String(x.price),
+            cost_price: String(x.cost_price ?? ''),
+            quantity: String(x.quantity),
+          }))
         );
       })
       .catch((e) => setError(e.message))
@@ -58,7 +65,8 @@ export default function ProductForm() {
   const removeColorRow = (key) => setColors((prev) => prev.filter((r) => r.key !== key));
   const setPackRow = (key, patch) =>
     setPacks((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-  const addPackRow = () => setPacks((prev) => [...prev, { key: rowSeq++, label: '', price: '', quantity: '0' }]);
+  const addPackRow = () =>
+    setPacks((prev) => [...prev, { key: rowSeq++, label: '', mrp: '', price: '', cost_price: '', quantity: '0' }]);
   const removePackRow = (key) => setPacks((prev) => prev.filter((r) => r.key !== key));
 
   function validate() {
@@ -97,6 +105,12 @@ export default function ProductForm() {
         if (row.price === '' || !Number.isFinite(Number(row.price)) || Number(row.price) < 0) {
           errs[`pprice-${row.key}`] = 'Selling price must be 0 or more.';
         }
+        if (row.mrp === '' || !Number.isFinite(Number(row.mrp)) || Number(row.mrp) < 0) {
+          errs[`pmrp-${row.key}`] = 'MRP must be 0 or more.';
+        }
+        if (row.cost_price === '' || !Number.isFinite(Number(row.cost_price)) || Number(row.cost_price) < 0) {
+          errs[`pcost-${row.key}`] = 'Cost price must be 0 or more.';
+        }
         if (row.quantity === '' || !Number.isInteger(Number(row.quantity)) || Number(row.quantity) < 0) {
           errs[`pqty-${row.key}`] = 'Whole number ≥ 0.';
         }
@@ -132,7 +146,13 @@ export default function ProductForm() {
       quantity: tracksColors ? colorTotal : tracksPacks ? packTotal : Number(form.quantity),
       colors: tracksColors ? colors.map((c) => ({ color: c.color.trim(), quantity: Number(c.quantity) })) : [],
       packs: tracksPacks
-        ? packs.map((p) => ({ label: p.label.trim(), price: Number(p.price), quantity: Number(p.quantity) }))
+        ? packs.map((p) => ({
+            label: p.label.trim(),
+            mrp: Number(p.mrp),
+            price: Number(p.price),
+            cost_price: Number(p.cost_price),
+            quantity: Number(p.quantity),
+          }))
         : [],
     };
     try {
@@ -281,10 +301,10 @@ export default function ProductForm() {
             <label>Stock by pack</label>
             <div className="hint" style={{ marginBottom: 6 }}>
               Optional. When packs are tracked (e.g. Small pack / Big pack), every order/bill line must pick one — each
-              pack has its own price and stock bucket. Cannot be combined with colors.
+              pack has its own MRP, selling price, cost price and stock bucket. Cannot be combined with colors.
             </div>
             {packs.map((row, i) => (
-              <div key={row.key} className="inline-form" style={{ marginBottom: 8 }}>
+              <div key={row.key} className="inline-form" style={{ marginBottom: 8, alignItems: 'flex-start' }}>
                 <input
                   className={`input ${fieldErrors[`pack-${row.key}`] ? 'invalid' : ''}`}
                   placeholder={`Pack ${i + 1} (e.g. Small pack)`}
@@ -292,18 +312,41 @@ export default function ProductForm() {
                   onChange={(e) => setPackRow(row.key, { label: e.target.value })}
                 />
                 <input
-                  className={`input ${fieldErrors[`pprice-${row.key}`] ? 'invalid' : ''}`}
-                  style={{ maxWidth: 130 }}
+                  className={`input ${fieldErrors[`pmrp-${row.key}`] ? 'invalid' : ''}`}
+                  style={{ maxWidth: 110 }}
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="Selling price"
+                  placeholder="MRP"
+                  title="MRP (printed price)"
+                  value={row.mrp}
+                  onChange={(e) => setPackRow(row.key, { mrp: e.target.value })}
+                />
+                <input
+                  className={`input ${fieldErrors[`pprice-${row.key}`] ? 'invalid' : ''}`}
+                  style={{ maxWidth: 110 }}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Selling"
+                  title="Selling price (what customer pays)"
                   value={row.price}
                   onChange={(e) => setPackRow(row.key, { price: e.target.value })}
                 />
                 <input
-                  className={`input ${fieldErrors[`pqty-${row.key}`] ? 'invalid' : ''}`}
+                  className={`input ${fieldErrors[`pcost-${row.key}`] ? 'invalid' : ''}`}
                   style={{ maxWidth: 110 }}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Cost"
+                  title="Cost price (what you pay)"
+                  value={row.cost_price}
+                  onChange={(e) => setPackRow(row.key, { cost_price: e.target.value })}
+                />
+                <input
+                  className={`input ${fieldErrors[`pqty-${row.key}`] ? 'invalid' : ''}`}
+                  style={{ maxWidth: 90 }}
                   type="number"
                   min="0"
                   step="1"
@@ -324,7 +367,7 @@ export default function ProductForm() {
             </div>
             {fieldErrors.variants ? <span className="field-error">{fieldErrors.variants}</span> : null}
             {Object.entries(fieldErrors)
-              .filter(([k]) => k.startsWith('pack-') || k.startsWith('pprice-') || k.startsWith('pqty-'))
+              .filter(([k]) => k.startsWith('pack-') || k.startsWith('pmrp-') || k.startsWith('pprice-') || k.startsWith('pcost-') || k.startsWith('pqty-'))
               .map(([k, v]) => (
                 <span key={k} className="field-error">
                   {v}
