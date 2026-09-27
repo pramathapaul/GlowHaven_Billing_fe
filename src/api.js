@@ -1,9 +1,12 @@
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 async function request(path, options = {}) {
   const { method = 'GET', body, ...rest } = options;
 
-  const res = await fetch(`${API_URL}${path}`, {
+  // Make sure the API path starts with /
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  const res = await fetch(`${API_URL}${normalizedPath}`, {
     method,
     headers:
       body !== undefined
@@ -18,7 +21,7 @@ async function request(path, options = {}) {
   try {
     data = await res.json();
   } catch {
-    // non-JSON response
+    // Non-JSON response
   }
 
   if (!res.ok) {
@@ -63,7 +66,9 @@ export const api = {
 };
 
 export async function downloadFile(path, filename) {
-  const res = await fetch(`${API_URL}${path}`);
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  const res = await fetch(`${API_URL}${normalizedPath}`);
 
   if (!res.ok) {
     let msg = `Download failed (HTTP ${res.status})`;
@@ -75,7 +80,7 @@ export async function downloadFile(path, filename) {
         msg = data.error;
       }
     } catch {
-      // ignore
+      // Ignore non-JSON response
     }
 
     throw new Error(msg);
