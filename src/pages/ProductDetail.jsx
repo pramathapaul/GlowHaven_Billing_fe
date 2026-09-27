@@ -126,6 +126,7 @@ export default function ProductDetail() {
           {product.tracks_colors || product.tracks_packs ? (
             <span className="badge badge-outline" style={{ marginLeft: 8 }}>
               total {product.quantity} {product.unit}
+              {product.tracks_packs ? ` · big size ${product.base_quantity}` : ''}
             </span>
           ) : null}
         </h2>
@@ -134,7 +135,7 @@ export default function ProductDetail() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Pack</th>
+                  <th>Size / pack</th>
                   <th className="num">MRP</th>
                   <th className="num">Selling price</th>
                   <th className="num">Cost price</th>
@@ -144,6 +145,37 @@ export default function ProductDetail() {
                 </tr>
               </thead>
               <tbody>
+                <tr>
+                  <td className="cell-title">
+                    Big size (original)
+                    <span className="badge badge-outline" style={{ marginLeft: 6 }}>
+                      default
+                    </span>
+                  </td>
+                  <td className="num">{formatMoney(product.mrp)}</td>
+                  <td className="num">{formatMoney(product.selling_price ?? product.mrp)}</td>
+                  <td className="num">{formatMoney(product.cost_price)}</td>
+                  <td className="num">
+                    {formatMoney(product.margin)}
+                    {product.margin < 0 ? (
+                      <span className="badge badge-danger" style={{ marginLeft: 6 }}>
+                        negative
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="num">
+                    {product.base_quantity} {product.unit}
+                  </td>
+                  <td>
+                    {product.base_quantity <= 0 ? (
+                      <span className="badge badge-danger">out of stock</span>
+                    ) : product.base_quantity <= 5 ? (
+                      <span className="badge badge-warn">low</span>
+                    ) : (
+                      <span className="badge badge-ok">available</span>
+                    )}
+                  </td>
+                </tr>
                 {product.packs.map((p) => (
                   <tr key={p.label}>
                     <td className="cell-title">{p.label}</td>
