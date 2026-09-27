@@ -102,7 +102,10 @@ export default function StandaloneBill() {
     .map((r) => {
       const p = productMap.get(r.productId);
       const qty = Number(r.qty) || 0;
-      const price = r.price === '' ? (p ? (p.selling_price ?? p.mrp) : 0) : Number(r.price) || 0;
+      // Empty price falls back to the selected pack's price, else the product's.
+      const packEntry = p && r.pack ? p.packs?.find((x) => x.label === r.pack) : null;
+      const defaultPrice = p ? (packEntry ? packEntry.price : (p.selling_price ?? p.mrp)) : 0;
+      const price = r.price === '' ? defaultPrice : Number(r.price) || 0;
       return { key: r.key, product: p, color: r.color || null, pack: r.pack || null, quantity: qty, price, lineTotal: round2(qty * price) };
     });
 
@@ -211,13 +214,14 @@ export default function StandaloneBill() {
                 ) : null}
 
                 {p?.tracks_packs ? (
-                  <div className="field" style={{ maxWidth: 240 }}>
+                  <div className="field" style={{ maxWidth: 260 }}>
                     <label>Pack *</label>
                     <select className="select" value={row.pack} onChange={(e) => onPackChange(row.key, e.target.value)}>
                       <option value="">— select —</option>
                       {p.packs.map((x) => (
                         <option key={x.label} value={x.label} disabled={x.quantity <= 0}>
-                          {x.label} — {formatMoney(x.price)} · {x.quantity > 0 ? `${x.quantity} in stock` : 'out of stock'}
+                          {x.label} — MRP {formatMoney(x.mrp ?? x.price)} · {formatMoney(x.price)} ·{' '}
+                          {x.quantity > 0 ? `${x.quantity} in stock` : 'out of stock'}
                         </option>
                       ))}
                     </select>
@@ -236,6 +240,13 @@ export default function StandaloneBill() {
                   />
                 </div>
 
+                <div className="field" style={{ maxWidth: 110 }}>
+                  <label>MRP</label>
+                  <div className="input" style={{ background: '#f8fafc', color: 'var(--muted)' }}>
+                    {p ? formatMoney(packEntry ? (packEntry.mrp ?? packEntry.price) : p.mrp) : '—'}
+                  </div>
+                </div>
+
                 <div className="field" style={{ maxWidth: 120 }}>
                   <label>Unit price</label>
                   <input
@@ -244,7 +255,7 @@ export default function StandaloneBill() {
                     min="0"
                     step="0.01"
                     value={row.price}
-                    placeholder={p ? String(p.selling_price ?? p.mrp) : ''}
+                    placeholder={p ? String(packEntry ? packEntry.price : (p.selling_price ?? p.mrp)) : ''}
                     onChange={(e) => updateRow(row.key, { price: e.target.value })}
                   />
                 </div>
