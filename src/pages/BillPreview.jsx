@@ -146,6 +146,9 @@ export default function BillPreview() {
                       {i.product?.name || 'Product'}
                       {i.color ? <span className="badge badge-neutral" style={{ marginLeft: 6 }}>{i.color}</span> : null}
                       {i.pack ? <span className="badge badge-neutral" style={{ marginLeft: 6 }}>{i.pack}</span> : null}
+                      {!i.pack && i.product?.packs?.length ? (
+                        <span className="badge badge-outline" style={{ marginLeft: 6 }}>Big size</span>
+                      ) : null}
                     </div>
                     <div className="cell-sub">
                       {i.product?.sku}
@@ -161,7 +164,9 @@ export default function BillPreview() {
                       ? `${i.product.packs.find((p) => p.label.toLowerCase() === i.pack.toLowerCase())?.quantity ?? 0} (${i.pack})`
                       : i.color && i.product?.colors
                         ? `${i.product.colors.find((c) => c.color.toLowerCase() === i.color.toLowerCase())?.quantity ?? 0} (${i.color})`
-                        : (i.product?.quantity ?? '—')}
+                        : i.product?.packs?.length
+                          ? `${i.product.base_quantity ?? 0} (big size)`
+                          : (i.product?.quantity ?? '—')}
                   </td>
                 </tr>
               ))}
