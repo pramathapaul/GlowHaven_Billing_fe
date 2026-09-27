@@ -53,7 +53,17 @@ export default function OrderDetail() {
   }
 
   function packStockLabel(p) {
-    return `${p.label} — ${formatMoney(p.price)} · ${p.quantity > 0 ? `${p.quantity} in stock` : 'out of stock'}`;
+    return `${p.label} — MRP ${formatMoney(p.mrp ?? p.price)} · ${formatMoney(p.price)} · ${p.quantity > 0 ? `${p.quantity} in stock` : 'out of stock'}`;
+  }
+
+  // MRP for a line: the selected pack's own MRP, else the product MRP.
+  function lineMrp(i) {
+    const pack =
+      i.pack && i.product?.packs
+        ? i.product.packs.find((p) => p.label.toLowerCase() === i.pack.toLowerCase())
+        : null;
+    const mrp = pack ? (pack.mrp ?? pack.price) : i.product?.mrp;
+    return mrp != null ? formatMoney(mrp) : null;
   }
 
   async function addItem(e) {
@@ -201,6 +211,7 @@ export default function OrderDetail() {
                 <tr>
                   <th>Product</th>
                   <th className="num">Qty</th>
+                  <th className="num">MRP</th>
                   <th className="num">Price at order</th>
                   <th className="num">Line total</th>
                   <th className="num">Stock now</th>
@@ -224,6 +235,7 @@ export default function OrderDetail() {
                       <div className="cell-sub">{i.product ? `${i.product.sku} · per ${i.product.unit}` : ''}</div>
                     </td>
                     <td className="num">{i.quantity}</td>
+                    <td className="num">{lineMrp(i) ?? '—'}</td>
                     <td className="num">{formatMoney(i.price_at_order)}</td>
                     <td className="num">{formatMoney(i.quantity * i.price_at_order)}</td>
                     <td className="num">
