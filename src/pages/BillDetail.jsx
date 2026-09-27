@@ -159,7 +159,9 @@ export default function BillDetail() {
                     ) : null}
                   </td>
                   <td className="num">{i.quantity}</td>
-                  <td className="num">{i.product?.mrp != null ? formatMoney(i.product.mrp) : '—'}</td>
+                  <td className="num">
+                    {(i.mrp ?? i.product?.mrp) != null ? formatMoney(i.mrp ?? i.product?.mrp) : '—'}
+                  </td>
                   <td className="num">{formatMoney(i.price)}</td>
                   <td className="num">{formatMoney(i.line_total)}</td>
                 </tr>
