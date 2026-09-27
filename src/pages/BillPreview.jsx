@@ -36,6 +36,16 @@ export default function BillPreview() {
   const items = order.items;
   const checked = items.filter((i) => !i.excluded_from_bill);
 
+  // MRP for a line: the selected pack's own MRP, else the product MRP.
+  const lineMrp = (i) => {
+    const pack =
+      i.pack && i.product?.packs
+        ? i.product.packs.find((p) => p.label.toLowerCase() === i.pack.toLowerCase())
+        : null;
+    const mrp = pack ? (pack.mrp ?? pack.price) : i.product?.mrp;
+    return mrp != null ? formatMoney(mrp) : '—';
+  };
+
   const subtotal = round2(checked.reduce((sum, i) => sum + i.quantity * i.price_at_order, 0));
   const deliveryNum = Math.max(0, Number(delivery) || 0);
   const discountRateNum = Math.min(100, Math.max(0, Number(discountRate) || 0));
@@ -112,6 +122,7 @@ export default function BillPreview() {
                 <th style={{ width: 40 }}>Bill?</th>
                 <th>Product</th>
                 <th className="num">Qty</th>
+                <th className="num">MRP</th>
                 <th className="num">Price</th>
                 <th className="num">Line total</th>
                 <th className="num">Stock</th>
@@ -142,6 +153,7 @@ export default function BillPreview() {
                     </div>
                   </td>
                   <td className="num">{i.quantity}</td>
+                  <td className="num">{lineMrp(i)}</td>
                   <td className="num">{formatMoney(i.price_at_order)}</td>
                   <td className="num">{formatMoney(i.quantity * i.price_at_order)}</td>
                   <td className="num">
