@@ -37,8 +37,14 @@ export default function ProductDetail() {
   if (error && !product) return <Alert onClose={() => setError('')}>{error}</Alert>;
   if (!product) return <Spinner />;
 
-  const stockValue = product.quantity * product.cost_price;
-  const retailValue = product.quantity * product.mrp;
+  // Pack-tracked products value their stock per pack (each pack has its own
+  // MRP / cost price); everything else uses the product-level prices.
+  const stockValue = product.tracks_packs
+    ? product.packs.reduce((sum, p) => sum + p.quantity * (p.cost_price ?? 0), 0)
+    : product.quantity * product.cost_price;
+  const retailValue = product.tracks_packs
+    ? product.packs.reduce((sum, p) => sum + p.quantity * (p.mrp ?? p.price), 0)
+    : product.quantity * product.mrp;
 
   return (
     <>
@@ -129,7 +135,10 @@ export default function ProductDetail() {
               <thead>
                 <tr>
                   <th>Pack</th>
+                  <th className="num">MRP</th>
                   <th className="num">Selling price</th>
+                  <th className="num">Cost price</th>
+                  <th className="num">Margin</th>
                   <th className="num">Available</th>
                   <th>Status</th>
                 </tr>
@@ -138,7 +147,15 @@ export default function ProductDetail() {
                 {product.packs.map((p) => (
                   <tr key={p.label}>
                     <td className="cell-title">{p.label}</td>
+                    <td className="num">{formatMoney(p.mrp ?? p.price)}</td>
                     <td className="num">{formatMoney(p.price)}</td>
+                    <td className="num">{formatMoney(p.cost_price ?? 0)}</td>
+                    <td className="num">
+                      {formatMoney((p.mrp ?? p.price) - (p.cost_price ?? 0))}
+                      {(p.mrp ?? p.price) - (p.cost_price ?? 0) < 0 ? (
+                        <span className="badge badge-danger" style={{ marginLeft: 6 }}>negative</span>
+                      ) : null}
+                    </td>
                     <td className="num">
                       {p.quantity} {product.unit}
                     </td>
