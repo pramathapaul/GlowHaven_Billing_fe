@@ -34,12 +34,12 @@ export default function StandaloneBill() {
 
   const onProductChange = (key, productId) => {
     const p = productMap.get(productId);
-    const firstPack = p?.packs?.length ? p.packs[0] : null;
     updateRow(key, {
       productId,
-      price: p ? String(firstPack ? firstPack.price : (p.selling_price ?? p.mrp)) : '',
+      // Default = the big/original size (no pack chosen).
+      price: p ? String(p.selling_price ?? p.mrp) : '',
       color: p?.colors?.length ? p.colors[0].color : '',
-      pack: firstPack ? firstPack.label : '',
+      pack: '',
     });
   };
 
@@ -47,7 +47,11 @@ export default function StandaloneBill() {
     const row = rows.find((r) => r.key === key);
     const p = row ? productMap.get(row.productId) : null;
     const entry = p?.packs?.find((x) => x.label === label);
-    updateRow(key, { pack: label, price: entry ? String(entry.price) : '' });
+    // Empty label = the big/original size -> bill at the product's own price.
+    updateRow(key, {
+      pack: label,
+      price: entry ? String(entry.price) : p ? String(p.selling_price ?? p.mrp) : '',
+    });
   };
 
   const addRow = () =>
@@ -79,7 +83,15 @@ export default function StandaloneBill() {
     }
 
     if (p.tracks_packs) {
-      if (!row.pack) return 'Choose a pack.';
+      // No pack chosen = the big/original size of the product.
+      if (!row.pack) {
+        const base = Number(p.base_quantity ?? 0);
+        const availableBase = base - othersFor((r) => !(r.pack || ''));
+        if (qty > availableBase) return `Only ${availableBase} available in big size.`;
+        const availableTotal = p.quantity - othersFor(() => true);
+        if (qty > availableTotal) return `Only ${availableTotal} available in total.`;
+        return null;
+      }
       const entry = p.packs.find((x) => x.label.toLowerCase() === row.pack.toLowerCase());
       if (!entry) return `No pack "${row.pack}" on this product.`;
       const availablePack = entry.quantity - othersFor((r) => (r.pack || '').toLowerCase() === row.pack.toLowerCase());
@@ -214,10 +226,13 @@ export default function StandaloneBill() {
                 ) : null}
 
                 {p?.tracks_packs ? (
-                  <div className="field" style={{ maxWidth: 260 }}>
-                    <label>Pack *</label>
+                  <div className="field" style={{ maxWidth: 280 }}>
+                    <label>Size</label>
                     <select className="select" value={row.pack} onChange={(e) => onPackChange(row.key, e.target.value)}>
-                      <option value="">— select —</option>
+                      <option value="">
+                        Big size (original) — MRP {formatMoney(p.mrp)} · {formatMoney(p.selling_price ?? p.mrp)} ·{' '}
+                        {(p.base_quantity ?? 0) > 0 ? `${p.base_quantity} in stock` : 'out of stock'}
+                      </option>
                       {p.packs.map((x) => (
                         <option key={x.label} value={x.label} disabled={x.quantity <= 0}>
                           {x.label} — MRP {formatMoney(x.mrp ?? x.price)} · {formatMoney(x.price)} ·{' '}
@@ -263,7 +278,13 @@ export default function StandaloneBill() {
                 <div className="field" style={{ maxWidth: 70 }}>
                   <label>Available</label>
                   <div className="input" style={{ background: '#f8fafc', color: 'var(--muted)' }}>
-                    {p ? (colorEntry ? `${colorEntry.quantity}` : packEntry ? `${packEntry.quantity}` : `${p.quantity}`) : '—'}
+                    {p
+                      ? colorEntry
+                        ? `${colorEntry.quantity}`
+                        : p.tracks_packs
+                          ? `${packEntry ? packEntry.quantity : (p.base_quantity ?? 0)}`
+                          : `${p.quantity}`
+                      : '—'}
                   </div>
                 </div>
 
