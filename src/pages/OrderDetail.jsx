@@ -72,7 +72,7 @@ export default function OrderDetail() {
     setFlash('');
     if (!productId) return setError('Select a product to add.');
     if (selectedProduct?.tracks_colors && !color) return setError(`"${selectedProduct.name}" tracks stock by color — choose a color.`);
-    if (selectedProduct?.tracks_packs && !pack) return setError(`"${selectedProduct.name}" tracks stock by pack — choose a pack.`);
+    // No pack chosen = the big/original size, which is always allowed.
     const quantity = Number(qty);
     if (!Number.isInteger(quantity) || quantity < 1) return setError('Quantity must be a whole number ≥ 1.');
     setBusy(true);
@@ -244,7 +244,9 @@ export default function OrderDetail() {
                           ? `${i.product.packs?.find((p) => p.label.toLowerCase() === i.pack.toLowerCase())?.quantity ?? 0} (${i.pack}) / ${i.product.quantity} total`
                           : i.color
                             ? `${i.product.colors?.find((c) => c.color.toLowerCase() === i.color.toLowerCase())?.quantity ?? 0} (${i.color}) / ${i.product.quantity} total`
-                            : i.product.quantity
+                            : i.product.packs?.length
+                              ? `${i.product.base_quantity ?? 0} (big size) / ${i.product.quantity} total`
+                              : i.product.quantity
                         : '—'}
                     </td>
                     <td className="num">
@@ -271,7 +273,7 @@ export default function OrderDetail() {
                 <option value="">— select product —</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
-                    {p.name} ({p.sku}) — {p.quantity > 0 ? `${p.quantity} in stock${p.tracks_colors ? ` · ${p.colors.length} colors` : ''}${p.tracks_packs ? ` · ${p.packs.length} packs` : ''}` : 'out of stock'}
+                    {p.name} ({p.sku}) — {p.quantity > 0 ? `${p.quantity} in stock${p.tracks_colors ? ` · ${p.colors.length} colors` : ''}${p.tracks_packs ? ` · big size ${p.base_quantity ?? 0} + ${p.packs.length} pack${p.packs.length === 1 ? '' : 's'}` : ''}` : 'out of stock'}
                   </option>
                 ))}
               </select>
@@ -290,10 +292,16 @@ export default function OrderDetail() {
               </div>
             ) : null}
             {packOptions.length > 0 ? (
-              <div className="field" style={{ maxWidth: 240 }}>
-                <label htmlFor="pack">Pack *</label>
+              <div className="field" style={{ maxWidth: 300 }}>
+                <label htmlFor="pack">Size</label>
                 <select id="pack" className="select" value={pack} onChange={(e) => setPack(e.target.value)}>
-                  <option value="">— select pack —</option>
+                  <option value="">
+                    Big size (original) — MRP {formatMoney(selectedProduct.mrp)} ·{' '}
+                    {formatMoney(selectedProduct.selling_price ?? selectedProduct.mrp)} ·{' '}
+                    {(selectedProduct.base_quantity ?? 0) > 0
+                      ? `${selectedProduct.base_quantity} in stock`
+                      : 'out of stock'}
+                  </option>
                   {packOptions.map((p) => (
                     <option key={p.label} value={p.label} disabled={p.quantity <= 0}>
                       {packStockLabel(p)}
