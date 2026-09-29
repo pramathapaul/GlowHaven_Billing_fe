@@ -36,15 +36,8 @@ export default function BillPreview() {
   const items = order.items;
   const checked = items.filter((i) => !i.excluded_from_bill);
 
-  // MRP for a line: the selected pack's own MRP, else the product MRP.
-  const lineMrp = (i) => {
-    const pack =
-      i.pack && i.product?.packs
-        ? i.product.packs.find((p) => p.label.toLowerCase() === i.pack.toLowerCase())
-        : null;
-    const mrp = pack ? (pack.mrp ?? pack.price) : i.product?.mrp;
-    return mrp != null ? formatMoney(mrp) : '—';
-  };
+  // MRP for a line: the product MRP.
+  const lineMrp = (i) => (i.product?.mrp != null ? formatMoney(i.product.mrp) : '—');
 
   const subtotal = round2(checked.reduce((sum, i) => sum + i.quantity * i.price_at_order, 0));
   const deliveryNum = Math.max(0, Number(delivery) || 0);
@@ -145,10 +138,6 @@ export default function BillPreview() {
                     <div className="cell-title">
                       {i.product?.name || 'Product'}
                       {i.color ? <span className="badge badge-neutral" style={{ marginLeft: 6 }}>{i.color}</span> : null}
-                      {i.pack ? <span className="badge badge-neutral" style={{ marginLeft: 6 }}>{i.pack}</span> : null}
-                      {!i.pack && i.product?.packs?.length ? (
-                        <span className="badge badge-outline" style={{ marginLeft: 6 }}>Big size</span>
-                      ) : null}
                     </div>
                     <div className="cell-sub">
                       {i.product?.sku}
@@ -160,13 +149,9 @@ export default function BillPreview() {
                   <td className="num">{formatMoney(i.price_at_order)}</td>
                   <td className="num">{formatMoney(i.quantity * i.price_at_order)}</td>
                   <td className="num">
-                    {i.pack && i.product?.packs
-                      ? `${i.product.packs.find((p) => p.label.toLowerCase() === i.pack.toLowerCase())?.quantity ?? 0} (${i.pack})`
-                      : i.color && i.product?.colors
-                        ? `${i.product.colors.find((c) => c.color.toLowerCase() === i.color.toLowerCase())?.quantity ?? 0} (${i.color})`
-                        : i.product?.packs?.length
-                          ? `${i.product.base_quantity ?? 0} (big size)`
-                          : (i.product?.quantity ?? '—')}
+                    {i.color && i.product?.colors
+                      ? `${i.product.colors.find((c) => c.color.toLowerCase() === i.color.toLowerCase())?.quantity ?? 0} (${i.color})`
+                      : (i.product?.quantity ?? '—')}
                   </td>
                 </tr>
               ))}
