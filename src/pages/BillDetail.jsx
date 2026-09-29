@@ -152,15 +152,6 @@ export default function BillDetail() {
                         {i.color}
                       </span>
                     ) : null}
-                    {i.pack ? (
-                      <span className="badge badge-neutral" style={{ marginLeft: 6 }}>
-                        {i.pack}
-                      </span>
-                    ) : i.product?.packs?.length ? (
-                      <span className="badge badge-outline" style={{ marginLeft: 6 }}>
-                        Big size
-                      </span>
-                    ) : null}
                   </td>
                   <td className="num">{i.quantity}</td>
                   <td className="num">
