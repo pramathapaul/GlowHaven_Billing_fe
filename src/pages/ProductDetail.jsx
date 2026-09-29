@@ -37,14 +37,8 @@ export default function ProductDetail() {
   if (error && !product) return <Alert onClose={() => setError('')}>{error}</Alert>;
   if (!product) return <Spinner />;
 
-  // Pack-tracked products value their stock per pack (each pack has its own
-  // MRP / cost price); everything else uses the product-level prices.
-  const stockValue = product.tracks_packs
-    ? product.packs.reduce((sum, p) => sum + p.quantity * (p.cost_price ?? 0), 0)
-    : product.quantity * product.cost_price;
-  const retailValue = product.tracks_packs
-    ? product.packs.reduce((sum, p) => sum + p.quantity * (p.mrp ?? p.price), 0)
-    : product.quantity * product.mrp;
+  const stockValue = product.quantity * product.cost_price;
+  const retailValue = product.quantity * product.mrp;
 
   return (
     <>
@@ -122,90 +116,14 @@ export default function ProductDetail() {
 
       <div className="card">
         <h2>
-          {product.tracks_packs ? 'Stock by pack' : 'Stock by color'}
-          {product.tracks_colors || product.tracks_packs ? (
+          Stock by color
+          {product.tracks_colors ? (
             <span className="badge badge-outline" style={{ marginLeft: 8 }}>
               total {product.quantity} {product.unit}
-              {product.tracks_packs ? ` · big size ${product.base_quantity}` : ''}
             </span>
           ) : null}
         </h2>
-        {product.tracks_packs ? (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Size / pack</th>
-                  <th className="num">MRP</th>
-                  <th className="num">Selling price</th>
-                  <th className="num">Cost price</th>
-                  <th className="num">Margin</th>
-                  <th className="num">Available</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="cell-title">
-                    Big size (original)
-                    <span className="badge badge-outline" style={{ marginLeft: 6 }}>
-                      default
-                    </span>
-                  </td>
-                  <td className="num">{formatMoney(product.mrp)}</td>
-                  <td className="num">{formatMoney(product.selling_price ?? product.mrp)}</td>
-                  <td className="num">{formatMoney(product.cost_price)}</td>
-                  <td className="num">
-                    {formatMoney(product.margin)}
-                    {product.margin < 0 ? (
-                      <span className="badge badge-danger" style={{ marginLeft: 6 }}>
-                        negative
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="num">
-                    {product.base_quantity} {product.unit}
-                  </td>
-                  <td>
-                    {product.base_quantity <= 0 ? (
-                      <span className="badge badge-danger">out of stock</span>
-                    ) : product.base_quantity <= 5 ? (
-                      <span className="badge badge-warn">low</span>
-                    ) : (
-                      <span className="badge badge-ok">available</span>
-                    )}
-                  </td>
-                </tr>
-                {product.packs.map((p) => (
-                  <tr key={p.label}>
-                    <td className="cell-title">{p.label}</td>
-                    <td className="num">{formatMoney(p.mrp ?? p.price)}</td>
-                    <td className="num">{formatMoney(p.price)}</td>
-                    <td className="num">{formatMoney(p.cost_price ?? 0)}</td>
-                    <td className="num">
-                      {formatMoney((p.mrp ?? p.price) - (p.cost_price ?? 0))}
-                      {(p.mrp ?? p.price) - (p.cost_price ?? 0) < 0 ? (
-                        <span className="badge badge-danger" style={{ marginLeft: 6 }}>negative</span>
-                      ) : null}
-                    </td>
-                    <td className="num">
-                      {p.quantity} {product.unit}
-                    </td>
-                    <td>
-                      {p.quantity <= 0 ? (
-                        <span className="badge badge-danger">out of stock</span>
-                      ) : p.quantity <= 5 ? (
-                        <span className="badge badge-warn">low</span>
-                      ) : (
-                        <span className="badge badge-ok">available</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : product.tracks_colors ? (
+        {product.tracks_colors ? (
           <div className="table-wrap">
             <table className="table">
               <thead>
@@ -237,9 +155,7 @@ export default function ProductDetail() {
             </table>
           </div>
         ) : (
-          <div className="cell-sub">
-            This product is not tracked by color or pack — single stock bucket.
-          </div>
+          <div className="cell-sub">This product is not tracked by color — single stock bucket.</div>
         )}
       </div>
 
