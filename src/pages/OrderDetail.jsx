@@ -12,7 +12,6 @@ export default function OrderDetail() {
   const [flash, setFlash] = useState('');
   const [productId, setProductId] = useState('');
   const [color, setColor] = useState('');
-  const [pack, setPack] = useState('');
   const [qty, setQty] = useState('1');
   const [busy, setBusy] = useState(false);
   const [pendingRemove, setPendingRemove] = useState(null);
@@ -40,29 +39,19 @@ export default function OrderDetail() {
 
   const selectedProduct = products.find((p) => p.id === productId) || null;
   const colorOptions = selectedProduct?.colors || [];
-  const packOptions = selectedProduct?.packs || [];
 
   function onProductChange(value) {
     setProductId(value);
     setColor('');
-    setPack('');
   }
 
   function colorStockLabel(c) {
     return `${c.color} — ${c.quantity > 0 ? `${c.quantity} in stock` : 'out of stock'}`;
   }
 
-  function packStockLabel(p) {
-    return `${p.label} — MRP ${formatMoney(p.mrp ?? p.price)} · ${formatMoney(p.price)} · ${p.quantity > 0 ? `${p.quantity} in stock` : 'out of stock'}`;
-  }
-
-  // MRP for a line: the selected pack's own MRP, else the product MRP.
+  // MRP for a line: the product MRP.
   function lineMrp(i) {
-    const pack =
-      i.pack && i.product?.packs
-        ? i.product.packs.find((p) => p.label.toLowerCase() === i.pack.toLowerCase())
-        : null;
-    const mrp = pack ? (pack.mrp ?? pack.price) : i.product?.mrp;
+    const mrp = i.product?.mrp;
     return mrp != null ? formatMoney(mrp) : null;
   }
 
@@ -72,7 +61,6 @@ export default function OrderDetail() {
     setFlash('');
     if (!productId) return setError('Select a product to add.');
     if (selectedProduct?.tracks_colors && !color) return setError(`"${selectedProduct.name}" tracks stock by color — choose a color.`);
-    // No pack chosen = the big/original size, which is always allowed.
     const quantity = Number(qty);
     if (!Number.isInteger(quantity) || quantity < 1) return setError('Quantity must be a whole number ≥ 1.');
     setBusy(true);
@@ -81,12 +69,10 @@ export default function OrderDetail() {
         productId,
         quantity,
         color: color || null,
-        pack: pack || null,
       });
       setFlash(d.message);
       setQty('1');
       setColor('');
-      setPack('');
       await load();
     } catch (err) {
       setError(err.message);
@@ -225,7 +211,6 @@ export default function OrderDetail() {
                       <div className="cell-title">
                         {i.product ? i.product.name : 'Product'}
                         {i.color ? <span className="badge badge-neutral" style={{ marginLeft: 6 }}>{i.color}</span> : null}
-                        {i.pack ? <span className="badge badge-neutral" style={{ marginLeft: 6 }}>{i.pack}</span> : null}
                         {i.excluded_from_bill ? (
                           <span className="badge badge-neutral" style={{ marginLeft: 6 }}>
                             excluded from bill
@@ -240,13 +225,9 @@ export default function OrderDetail() {
                     <td className="num">{formatMoney(i.quantity * i.price_at_order)}</td>
                     <td className="num">
                       {i.product
-                        ? i.pack
-                          ? `${i.product.packs?.find((p) => p.label.toLowerCase() === i.pack.toLowerCase())?.quantity ?? 0} (${i.pack}) / ${i.product.quantity} total`
-                          : i.color
-                            ? `${i.product.colors?.find((c) => c.color.toLowerCase() === i.color.toLowerCase())?.quantity ?? 0} (${i.color}) / ${i.product.quantity} total`
-                            : i.product.packs?.length
-                              ? `${i.product.base_quantity ?? 0} (big size) / ${i.product.quantity} total`
-                              : i.product.quantity
+                        ? i.color
+                          ? `${i.product.colors?.find((c) => c.color.toLowerCase() === i.color.toLowerCase())?.quantity ?? 0} (${i.color}) / ${i.product.quantity} total`
+                          : i.product.quantity
                         : '—'}
                     </td>
                     <td className="num">
@@ -273,7 +254,7 @@ export default function OrderDetail() {
                 <option value="">— select product —</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
-                    {p.name} ({p.sku}) — {p.quantity > 0 ? `${p.quantity} in stock${p.tracks_colors ? ` · ${p.colors.length} colors` : ''}${p.tracks_packs ? ` · big size ${p.base_quantity ?? 0} + ${p.packs.length} pack${p.packs.length === 1 ? '' : 's'}` : ''}` : 'out of stock'}
+                    {p.name} ({p.sku}) — {p.quantity > 0 ? `${p.quantity} in stock${p.tracks_colors ? ` · ${p.colors.length} colors` : ''}` : 'out of stock'}
                   </option>
                 ))}
               </select>
@@ -286,25 +267,6 @@ export default function OrderDetail() {
                   {colorOptions.map((c) => (
                     <option key={c.color} value={c.color} disabled={c.quantity <= 0}>
                       {colorStockLabel(c)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-            {packOptions.length > 0 ? (
-              <div className="field" style={{ maxWidth: 300 }}>
-                <label htmlFor="pack">Size</label>
-                <select id="pack" className="select" value={pack} onChange={(e) => setPack(e.target.value)}>
-                  <option value="">
-                    Big size (original) — MRP {formatMoney(selectedProduct.mrp)} ·{' '}
-                    {formatMoney(selectedProduct.selling_price ?? selectedProduct.mrp)} ·{' '}
-                    {(selectedProduct.base_quantity ?? 0) > 0
-                      ? `${selectedProduct.base_quantity} in stock`
-                      : 'out of stock'}
-                  </option>
-                  {packOptions.map((p) => (
-                    <option key={p.label} value={p.label} disabled={p.quantity <= 0}>
-                      {packStockLabel(p)}
                     </option>
                   ))}
                 </select>
