@@ -152,12 +152,6 @@ export default function Products() {
                             {p.colors.map((c) => `${c.color} ${c.quantity}`).join(' · ')}
                           </span>
                         ) : null}
-                        {p.tracks_packs ? (
-                          <span className="badge badge-outline" style={{ marginLeft: 6 }}>
-                            big size {p.base_quantity ?? 0}
-                            {p.packs.map((x) => ` · ${x.label} ${x.quantity}`).join('')}
-                          </span>
-                        ) : null}
                         {p.is_deleted ? <span className="badge badge-danger" style={{ marginLeft: 6 }}>deleted</span> : null}
                       </div>
                     </td>
