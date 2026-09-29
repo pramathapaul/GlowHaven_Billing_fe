@@ -11,7 +11,7 @@ export default function StandaloneBill() {
   const [customers, setCustomers] = useState(null);
   const [products, setProducts] = useState(null);
   const [customerId, setCustomerId] = useState('');
-  const [rows, setRows] = useState([{ key: rowSeq++, productId: '', color: '', pack: '', qty: '1', price: '' }]);
+  const [rows, setRows] = useState([{ key: rowSeq++, productId: '', color: '', qty: '1', price: '' }]);
   const [delivery, setDelivery] = useState('0');
   const [discountRate, setDiscountRate] = useState('0');
   const [error, setError] = useState('');
@@ -36,26 +36,13 @@ export default function StandaloneBill() {
     const p = productMap.get(productId);
     updateRow(key, {
       productId,
-      // Default = the big/original size (no pack chosen).
       price: p ? String(p.selling_price ?? p.mrp) : '',
       color: p?.colors?.length ? p.colors[0].color : '',
-      pack: '',
-    });
-  };
-
-  const onPackChange = (key, label) => {
-    const row = rows.find((r) => r.key === key);
-    const p = row ? productMap.get(row.productId) : null;
-    const entry = p?.packs?.find((x) => x.label === label);
-    // Empty label = the big/original size -> bill at the product's own price.
-    updateRow(key, {
-      pack: label,
-      price: entry ? String(entry.price) : p ? String(p.selling_price ?? p.mrp) : '',
     });
   };
 
   const addRow = () =>
-    setRows((prev) => [...prev, { key: rowSeq++, productId: '', color: '', pack: '', qty: '1', price: '' }]);
+    setRows((prev) => [...prev, { key: rowSeq++, productId: '', color: '', qty: '1', price: '' }]);
   const removeRow = (key) => setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.key !== key) : prev));
 
   /** Availability for one row = bucket stock − what the OTHER rows already claim. */
@@ -82,25 +69,6 @@ export default function StandaloneBill() {
       return null;
     }
 
-    if (p.tracks_packs) {
-      // No pack chosen = the big/original size of the product.
-      if (!row.pack) {
-        const base = Number(p.base_quantity ?? 0);
-        const availableBase = base - othersFor((r) => !(r.pack || ''));
-        if (qty > availableBase) return `Only ${availableBase} available in big size.`;
-        const availableTotal = p.quantity - othersFor(() => true);
-        if (qty > availableTotal) return `Only ${availableTotal} available in total.`;
-        return null;
-      }
-      const entry = p.packs.find((x) => x.label.toLowerCase() === row.pack.toLowerCase());
-      if (!entry) return `No pack "${row.pack}" on this product.`;
-      const availablePack = entry.quantity - othersFor((r) => (r.pack || '').toLowerCase() === row.pack.toLowerCase());
-      if (qty > availablePack) return `Only ${availablePack} available in ${row.pack}.`;
-      const availableTotal = p.quantity - othersFor(() => true);
-      if (qty > availableTotal) return `Only ${availableTotal} available in total.`;
-      return null;
-    }
-
     const available = p.quantity - othersFor(() => true);
     if (qty > available) return `Only ${available} available.`;
     return null;
@@ -114,11 +82,9 @@ export default function StandaloneBill() {
     .map((r) => {
       const p = productMap.get(r.productId);
       const qty = Number(r.qty) || 0;
-      // Empty price falls back to the selected pack's price, else the product's.
-      const packEntry = p && r.pack ? p.packs?.find((x) => x.label === r.pack) : null;
-      const defaultPrice = p ? (packEntry ? packEntry.price : (p.selling_price ?? p.mrp)) : 0;
+      const defaultPrice = p ? (p.selling_price ?? p.mrp) : 0;
       const price = r.price === '' ? defaultPrice : Number(r.price) || 0;
-      return { key: r.key, product: p, color: r.color || null, pack: r.pack || null, quantity: qty, price, lineTotal: round2(qty * price) };
+      return { key: r.key, product: p, color: r.color || null, quantity: qty, price, lineTotal: round2(qty * price) };
     });
 
   const subtotal = round2(lines.reduce((sum, l) => sum + l.lineTotal, 0));
@@ -144,7 +110,6 @@ export default function StandaloneBill() {
           quantity: l.quantity,
           price: l.price,
           color: l.color,
-          pack: l.pack,
         })),
         deliveryCharge: deliveryNum,
         discountRate: discountRateNum,
@@ -196,7 +161,6 @@ export default function StandaloneBill() {
             const p = row.productId ? productMap.get(row.productId) : null;
             const err = rowErrors.find((r) => r.key === row.key)?.error;
             const colorEntry = p?.colors?.find((c) => c.color.toLowerCase() === row.color.toLowerCase());
-            const packEntry = p?.packs?.find((x) => x.label.toLowerCase() === row.pack.toLowerCase());
             return (
               <div key={row.key} className="inline-form" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
                 <div className="field" style={{ minWidth: 220 }}>
@@ -225,24 +189,6 @@ export default function StandaloneBill() {
                   </div>
                 ) : null}
 
-                {p?.tracks_packs ? (
-                  <div className="field" style={{ maxWidth: 280 }}>
-                    <label>Size</label>
-                    <select className="select" value={row.pack} onChange={(e) => onPackChange(row.key, e.target.value)}>
-                      <option value="">
-                        Big size (original) — MRP {formatMoney(p.mrp)} · {formatMoney(p.selling_price ?? p.mrp)} ·{' '}
-                        {(p.base_quantity ?? 0) > 0 ? `${p.base_quantity} in stock` : 'out of stock'}
-                      </option>
-                      {p.packs.map((x) => (
-                        <option key={x.label} value={x.label} disabled={x.quantity <= 0}>
-                          {x.label} — MRP {formatMoney(x.mrp ?? x.price)} · {formatMoney(x.price)} ·{' '}
-                          {x.quantity > 0 ? `${x.quantity} in stock` : 'out of stock'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
-
                 <div className="field" style={{ maxWidth: 100 }}>
                   <label>Qty</label>
                   <input
@@ -258,7 +204,7 @@ export default function StandaloneBill() {
                 <div className="field" style={{ maxWidth: 110 }}>
                   <label>MRP</label>
                   <div className="input" style={{ background: '#f8fafc', color: 'var(--muted)' }}>
-                    {p ? formatMoney(packEntry ? (packEntry.mrp ?? packEntry.price) : p.mrp) : '—'}
+                    {p ? formatMoney(p.mrp) : '—'}
                   </div>
                 </div>
 
@@ -270,7 +216,7 @@ export default function StandaloneBill() {
                     min="0"
                     step="0.01"
                     value={row.price}
-                    placeholder={p ? String(packEntry ? packEntry.price : (p.selling_price ?? p.mrp)) : ''}
+                    placeholder={p ? String(p.selling_price ?? p.mrp) : ''}
                     onChange={(e) => updateRow(row.key, { price: e.target.value })}
                   />
                 </div>
@@ -278,13 +224,7 @@ export default function StandaloneBill() {
                 <div className="field" style={{ maxWidth: 70 }}>
                   <label>Available</label>
                   <div className="input" style={{ background: '#f8fafc', color: 'var(--muted)' }}>
-                    {p
-                      ? colorEntry
-                        ? `${colorEntry.quantity}`
-                        : p.tracks_packs
-                          ? `${packEntry ? packEntry.quantity : (p.base_quantity ?? 0)}`
-                          : `${p.quantity}`
-                      : '—'}
+                    {p ? (colorEntry ? `${colorEntry.quantity}` : `${p.quantity}`) : '—'}
                   </div>
                 </div>
 
