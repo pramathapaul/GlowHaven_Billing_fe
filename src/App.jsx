@@ -32,7 +32,6 @@ function Layout() {
           <span className="brand-mark">G</span>
           <div>
             <strong>Glowhaven Billing app</strong>
-            <small>+91 8910434478</small>
             <small>Inventory &amp; Billing</small>
           </div>
         </div>
