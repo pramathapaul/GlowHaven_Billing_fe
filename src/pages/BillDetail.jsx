@@ -94,7 +94,7 @@ export default function BillDetail() {
         <div className="invoice-head">
           <div>
             <h1>Invoice</h1>
-            <div style={{ fontSize: 15 }}>GlowHaven</div>
+            <div style={{ fontSize: 15 }}>From GlowHaven</div>
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>+91 8910434478</div>
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>Madhyamgram Purnachal PO - East Udayrajpur Pin - 700129</div>
           </div>
@@ -114,7 +114,7 @@ export default function BillDetail() {
 
         <div className="invoice-parties">
           <div>
-            <div className="stat-label">Billed to</div>
+            <div className="stat-label">To</div>
             <div style={{ fontSize: 17, fontWeight: 700, marginTop: 4 }}>{bill.customer?.name || '—'}</div>
             <div style={{ color: 'var(--muted)' }}>{bill.customer?.phone}</div>
             {bill.customer?.phone2 ? <div style={{ color: 'var(--muted)' }}>{bill.customer.phone2}</div> : null}
