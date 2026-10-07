@@ -14,6 +14,8 @@ export default function StandaloneBill() {
   const [rows, setRows] = useState([{ key: rowSeq++, productId: '', color: '', qty: '1', price: '' }]);
   const [delivery, setDelivery] = useState('0');
   const [discountRate, setDiscountRate] = useState('0');
+  const [orderSource, setOrderSource] = useState('bill');
+  const [siteOrderId, setSiteOrderId] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -100,6 +102,7 @@ export default function StandaloneBill() {
     if (rows.every((r) => !r.productId)) return setError('Add at least one product.');
     if (uniqueErrors.length) return setError(uniqueErrors.join(' '));
     if (lines.length === 0) return setError('Fix the item rows before saving.');
+    if (orderSource === 'site' && !siteOrderId.trim()) return setError('Enter the site order id.');
 
     setSaving(true);
     try {
@@ -113,6 +116,7 @@ export default function StandaloneBill() {
         })),
         deliveryCharge: deliveryNum,
         discountRate: discountRateNum,
+        siteOrderId: orderSource === 'site' ? siteOrderId.trim() : null,
       });
       navigate(`/bills/${d.bill.id}`);
     } catch (err) {
@@ -256,6 +260,41 @@ export default function StandaloneBill() {
               <label htmlFor="disc">Discount (%)</label>
               <input id="disc" className="input" type="number" min="0" max="100" step="0.5" value={discountRate} onChange={(e) => setDiscountRate(e.target.value)} />
             </div>
+          </div>
+
+          <div className="field" style={{ marginBottom: 16 }}>
+            <label>Order id</label>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+              <label className="checkbox-label">
+                <input
+                  type="radio"
+                  name="orderSource"
+                  checked={orderSource === 'bill'}
+                  onChange={() => setOrderSource('bill')}
+                />
+                Same as bill id
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="radio"
+                  name="orderSource"
+                  checked={orderSource === 'site'}
+                  onChange={() => setOrderSource('site')}
+                />
+                Site order id
+              </label>
+            </div>
+            {orderSource === 'site' ? (
+              <input
+                className="input"
+                style={{ maxWidth: 280, marginTop: 6 }}
+                placeholder="e.g. WH-10245"
+                value={siteOrderId}
+                onChange={(e) => setSiteOrderId(e.target.value)}
+              />
+            ) : (
+              <span className="hint">The bill's order id will be the same as the bill id.</span>
+            )}
           </div>
 
           <div className="totals-box">
