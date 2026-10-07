@@ -11,6 +11,7 @@ export default function OrderDetail() {
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
   const [productId, setProductId] = useState('');
+  const [productSearch, setProductSearch] = useState('');
   const [color, setColor] = useState('');
   const [qty, setQty] = useState('1');
   const [busy, setBusy] = useState(false);
@@ -39,6 +40,20 @@ export default function OrderDetail() {
 
   const selectedProduct = products.find((p) => p.id === productId) || null;
   const colorOptions = selectedProduct?.colors || [];
+
+  const filteredProducts = (() => {
+    const q = productSearch.trim().toLowerCase();
+    const list = q
+      ? products.filter((p) =>
+          [p.name, p.sku, p.category].some((v) => String(v || '').toLowerCase().includes(q)),
+        )
+      : products;
+    if (productId && !list.some((p) => p.id === productId)) {
+      const selected = products.find((p) => p.id === productId);
+      if (selected) return [...list, selected];
+    }
+    return list;
+  })();
 
   function onProductChange(value) {
     setProductId(value);
@@ -248,11 +263,25 @@ export default function OrderDetail() {
 
         {editable ? (
           <form className="inline-form" style={{ marginTop: 16 }} onSubmit={addItem}>
-            <div className="field">
+            <div className="field" style={{ flex: 2, minWidth: 260 }}>
               <label htmlFor="product">Product</label>
+              <input
+                id="product-search"
+                className="input"
+                type="search"
+                placeholder="Search products…"
+                aria-label="Search products by name, SKU or category"
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+              />
               <select id="product" className="select" value={productId} onChange={(e) => onProductChange(e.target.value)}>
                 <option value="">— select product —</option>
-                {products.map((p) => (
+                {filteredProducts.length === 0 ? (
+                  <option value="" disabled>
+                    No products match “{productSearch.trim()}”
+                  </option>
+                ) : null}
+                {filteredProducts.map((p) => (
                   <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
                     {p.name} ({p.sku}) — {p.quantity > 0 ? `${p.quantity} in stock${p.tracks_colors ? ` · ${p.colors.length} colors` : ''}` : 'out of stock'}
                   </option>
