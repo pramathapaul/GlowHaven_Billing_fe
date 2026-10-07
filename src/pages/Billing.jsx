@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, formatMoney, formatDay } from '../api.js';
+import { api, formatMoney, formatDay, billSource } from '../api.js';
 import { PageHead, Alert, Spinner, Empty, StatusBadge } from '../components/ui.jsx';
 
 export default function Billing() {
@@ -103,9 +103,11 @@ export default function Billing() {
                     <td>{b.customer?.name || '—'}</td>
                     <td>
                       {b.order_id ? (
-                        <Link to={`/orders/${b.order_id}`}>order #{b.order_id.slice(-8)}</Link>
+                        <Link to={`/orders/${b.order_id}`}>order {billSource(b).text}</Link>
                       ) : (
-                        <span className="badge badge-outline">standalone</span>
+                        <span className="badge badge-outline">
+                          {b.site_order_id ? `site order ${billSource(b).text}` : `order ${billSource(b).text}`}
+                        </span>
                       )}
                     </td>
                     <td className="num">{formatMoney(b.total)}</td>
