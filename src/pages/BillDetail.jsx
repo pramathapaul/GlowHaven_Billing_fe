@@ -96,6 +96,7 @@ export default function BillDetail() {
             <h1>Invoice</h1>
             <div style={{ fontSize: 15 }}>GlowHaven</div>
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>+91 8910434478</div>
+            <div style={{ color: 'var(--muted)', fontSize: 13 }}>Madhyamgram Purnachal PO - East Udayrajpur Pin - 700129</div>
           </div>
           <div className="invoice-meta">
             <div>
