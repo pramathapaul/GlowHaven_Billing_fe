@@ -1,12 +1,9 @@
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 async function request(path, options = {}) {
   const { method = 'GET', body, ...rest } = options;
 
-  // Make sure the API path starts with /
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-  const res = await fetch(`${API_URL}${normalizedPath}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     method,
     headers:
       body !== undefined
@@ -21,7 +18,7 @@ async function request(path, options = {}) {
   try {
     data = await res.json();
   } catch {
-    // Non-JSON response
+    // non-JSON response
   }
 
   if (!res.ok) {
@@ -66,9 +63,7 @@ export const api = {
 };
 
 export async function downloadFile(path, filename) {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-  const res = await fetch(`${API_URL}${normalizedPath}`);
+  const res = await fetch(`${API_URL}${path}`);
 
   if (!res.ok) {
     let msg = `Download failed (HTTP ${res.status})`;
@@ -80,7 +75,7 @@ export async function downloadFile(path, filename) {
         msg = data.error;
       }
     } catch {
-      // Ignore non-JSON response
+      // ignore
     }
 
     throw new Error(msg);
@@ -122,3 +117,9 @@ export const formatDay = (value) =>
         dateStyle: 'medium',
       })
     : '—';
+
+export function billSource(bill) {
+  if (bill?.order_id) return { kind: 'order', id: bill.order_id, text: `#${bill.order_id.slice(-8)}` };
+  if (bill?.site_order_id) return { kind: 'site', text: `#${bill.site_order_id}` };
+  return { kind: 'self', id: bill?.id || '', text: `#${String(bill?.id || '').slice(-8)}` };
+}
