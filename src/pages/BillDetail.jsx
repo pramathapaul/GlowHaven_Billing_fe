@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, downloadFile, formatMoney, formatDay } from '../api.js';
+import { api, downloadFile, formatMoney, formatDay, billSource } from '../api.js';
 import { downloadElementAsPdf } from '../pdf.js';
 import { PageHead, Alert, Spinner, StatusBadge, ConfirmDialog } from '../components/ui.jsx';
 
@@ -63,6 +63,8 @@ export default function BillDetail() {
   if (error && !bill) return <Alert onClose={() => setError('')}>{error}</Alert>;
   if (!bill) return <Spinner />;
 
+  const source = billSource(bill);
+
   return (
     <>
       <PageHead title={`Bill #${bill.id.slice(-8)}`} subtitle={bill.order ? 'From order' : 'Standalone bill'}>
@@ -97,7 +99,7 @@ export default function BillDetail() {
             <div style={{ fontSize: 15 }}>From GlowHaven</div>
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>+91 8910434478</div>
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>Madhyamgram Purnachal PO - East Udayrajpur Pin - 700129</div>
-          </div>
+          </div>  
           <div className="invoice-meta">
             <div>
               Bill ID: <strong>#{bill.id.slice(-8)}</strong>
@@ -107,7 +109,7 @@ export default function BillDetail() {
             </div>
             <div>
               Source:{' '}
-              <strong>{bill.order_id ? `Order #${bill.order_id.slice(-8)}` : 'Standalone'}</strong>
+              <strong>{source.kind === 'site' ? `Site order ${source.text}` : `Order ${source.text}`}</strong>
             </div>
           </div>
         </div>
