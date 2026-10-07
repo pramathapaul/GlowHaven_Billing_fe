@@ -7,6 +7,7 @@ export default function Products() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [lowStock, setLowStock] = useState(false);
+  const [outOfStock, setOutOfStock] = useState(false);
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState(null);
@@ -19,15 +20,20 @@ export default function Products() {
     api.get('/api/products/categories').then((d) => setCategories(d.categories)).catch(() => {});
   }, []);
 
+  function buildListParams() {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('search', search.trim());
+    if (category) params.set('category', category);
+    if (lowStock) params.set('lowStock', 'true');
+    if (outOfStock) params.set('outOfStock', 'true');
+    if (includeDeleted) params.set('includeDeleted', 'true');
+    return params.toString();
+  }
+
   useEffect(() => {
     const t = setTimeout(() => {
-      const params = new URLSearchParams();
-      if (search.trim()) params.set('search', search.trim());
-      if (category) params.set('category', category);
-      if (lowStock) params.set('lowStock', 'true');
-      if (includeDeleted) params.set('includeDeleted', 'true');
       api
-        .get(`/api/products?${params.toString()}`)
+        .get(`/api/products?${buildListParams()}`)
         .then((d) => {
           setProducts(d.products);
           setError('');
@@ -35,7 +41,7 @@ export default function Products() {
         .catch((e) => setError(e.message));
     }, 250);
     return () => clearTimeout(t);
-  }, [search, category, lowStock, includeDeleted]);
+  }, [search, category, lowStock, outOfStock, includeDeleted]);
 
   async function confirmDelete() {
     setBusy(true);
@@ -43,9 +49,7 @@ export default function Products() {
       const d = await api.del(`/api/products/${toDelete.id}`);
       setFlash(d.message);
       setToDelete(null);
-      const params = new URLSearchParams();
-      if (includeDeleted) params.set('includeDeleted', 'true');
-      const list = await api.get(`/api/products?${params.toString()}`);
+      const list = await api.get(`/api/products?${buildListParams()}`);
       setProducts(list.products);
     } catch (e) {
       setError(e.message);
@@ -59,14 +63,14 @@ export default function Products() {
     try {
       const d = await api.post(`/api/products/${product.id}/restore`);
       setFlash(d.message);
-      const list = await api.get(`/api/products?${includeDeleted ? 'includeDeleted=true' : ''}`);
+      const list = await api.get(`/api/products?${buildListParams()}`);
       setProducts(list.products);
     } catch (e) {
       setError(e.message);
     }
   }
 
-  const hasFilters = search || category || lowStock || includeDeleted;
+  const hasFilters = search || category || lowStock || outOfStock || includeDeleted;
 
   return (
     <>
@@ -100,6 +104,10 @@ export default function Products() {
             Low stock only
           </label>
           <label className="checkbox-label">
+            <input type="checkbox" checked={outOfStock} onChange={(e) => setOutOfStock(e.target.checked)} />
+            Show 0 quantity products
+          </label>
+          <label className="checkbox-label">
             <input type="checkbox" checked={includeDeleted} onChange={(e) => setIncludeDeleted(e.target.checked)} />
             Show deleted
           </label>
@@ -110,6 +118,7 @@ export default function Products() {
                 setSearch('');
                 setCategory('');
                 setLowStock(false);
+                setOutOfStock(false);
                 setIncludeDeleted(false);
               }}
             >
