@@ -280,6 +280,34 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .invoice .table th { border-bottom: 2px solid var(--ink); }
 .invoice-footer { margin-top: 26px; padding-top: 14px; border-top: 1px dashed var(--line); color: var(--muted); font-size: 12.5px; display: flex; justify-content: space-between; }
 
+/* ---------- 58mm thermal receipt (only shown while thermal printing) ---------- */
+.thermal-receipt { display: none; }
+
+.thermal-receipt .tr-center { text-align: center; }
+.thermal-receipt .tr-brand {
+  font-size: 15px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+}
+.thermal-receipt .tr-rule { border-top: 1px dashed #000; margin: 2mm 0; }
+.thermal-receipt .tr-section {
+  font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin: 1mm 0 .5mm;
+}
+.thermal-receipt .tr-row {
+  display: flex; justify-content: space-between; gap: 6px; align-items: baseline;
+}
+.thermal-receipt .tr-row > span:last-child { text-align: right; }
+.thermal-receipt .tr-item { margin: 1.5mm 0; }
+.thermal-receipt .tr-item-name { word-break: break-word; }
+.thermal-receipt .tr-item-line { display: flex; justify-content: space-between; gap: 6px; }
+.thermal-receipt .tr-total { font-size: 13px; font-weight: 800; margin-top: 1mm; }
+.thermal-receipt .tr-foot { text-align: center; margin-top: 1.5mm; }
+.thermal-receipt .tr-small { font-size: 9px; }
+.thermal-receipt .tr-qr { text-align: center; margin: 2mm 0; }
+.thermal-receipt .tr-qr img { width: 28mm; height: 28mm; display: block; margin: 0 auto; }
+.thermal-receipt .tr-qr-label { font-weight: 700; margin-top: 1mm; }
+
+/* ---------- address label print (landscape, From | To) ---------- */
+.address-label { display: none; }
+
 /* ---------- responsive ---------- */
 @media (max-width: 760px) {
   .app { flex-direction: column; }
@@ -298,4 +326,91 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .card { border: none; box-shadow: none; padding: 0; }
   .invoice-head, .table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   a { color: inherit; text-decoration: none; }
+
+  /* 58mm thermal mode: only the receipt survives on the page */
+  body.printing-thermal { background: #fff; }
+  body.printing-thermal .app > *:not(.main) { display: none !important; }
+  body.printing-thermal .main > *:not(.thermal-receipt) { display: none !important; }
+  body.printing-thermal .thermal-receipt {
+    display: block !important;
+    width: 58mm;
+    padding: 3mm;
+    box-sizing: border-box;
+    margin: 0;
+    background: #fff;
+    color: #000;
+    font-family: ui-monospace, "Cascadia Mono", "Consolas", "Courier New", monospace;
+    font-size: 10.5px;
+    line-height: 1.35;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing-thermal .thermal-receipt .tr-brand { font-size: 14px; }
+  body.printing-thermal .thermal-receipt .tr-total { font-size: 12.5px; }
+  body.printing-thermal .thermal-receipt .tr-qr img {
+    width: 28mm; height: 28mm;
+    image-rendering: pixelated;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* address label mode: only the From | To label survives; page = 56mm tall, width auto */
+  body.printing-label { background: #fff; }
+  body.printing-label .app > *:not(.main) { display: none !important; }
+  body.printing-label .main > *:not(.address-label) { display: none !important; }
+  body.printing-label .main { padding: 0; max-width: none; }
+  body.printing-label .address-label {
+    display: block !important;
+    width: auto;
+    height: 56mm;
+    margin: 0;
+    padding: 0 4mm;
+    box-sizing: border-box;
+    background: #fff;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing-label .al-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4mm;
+    height: 56mm;
+    align-items: stretch;
+  }
+  body.printing-label .al-panel {
+    border: 1.5px solid #000;
+    border-radius: 2mm;
+    padding: 3mm 4mm;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    height: 56mm;
+  }
+  body.printing-label .al-caption {
+    font-size: 8pt;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1.5px solid #000;
+    padding-bottom: 1.5mm;
+    margin-bottom: 2mm;
+  }
+  body.printing-label .al-name {
+    font-size: 13pt;
+    font-weight: 800;
+    letter-spacing: -.3px;
+    margin-bottom: 1.5mm;
+    word-break: break-word;
+  }
+  body.printing-label .al-line { font-size: 8.5pt; margin: .8mm 0; word-break: break-word; }
+  body.printing-label .al-spacer { flex: 1; }
+  body.printing-label .al-ref {
+    font-size: 7pt;
+    color: #333;
+    border-top: 1px dashed #000;
+    padding-top: 1.5mm;
+    margin-top: 2mm;
+  }
 }
